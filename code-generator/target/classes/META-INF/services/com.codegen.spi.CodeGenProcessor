@@ -1,0 +1,5 @@
+com.codegen.processor.controller.GenControllerProcessor
+com.codegen.processor.mapper.GenMapperProcessor
+com.codegen.processor.service.GenHncFormServiceImplProcessor
+com.codegen.processor.service.GenServiceProcessor
+com.codegen.processor.vo.VoCodeGenProcessor
