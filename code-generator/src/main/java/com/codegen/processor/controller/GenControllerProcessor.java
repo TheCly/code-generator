@@ -3,6 +3,7 @@ package com.codegen.processor.controller;
 
 import com.codegen.DefaultNameContext;
 import com.codegen.processor.BaseCodeGenProcessor;
+import com.codegen.processor.vo.IgnoreVo;
 import com.codegen.spi.CodeGenProcessor;
 import com.codegen.util.StringUtils;
 import com.google.auto.service.AutoService;
@@ -10,6 +11,7 @@ import com.google.auto.service.AutoService;
 import com.google.gson.JsonObject;
 import com.hnc.socialization.controller.BaseController;
 import com.hnc.socialization.entity.User;
+import com.hnc.socialization.result.Result;
 import com.hnc.socialization.result.ResultUtil;
 import com.hnc.socialization.utils.RequestUtil;
 import com.squareup.javapoet.AnnotationSpec;
@@ -17,15 +19,23 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.MethodSpec.Builder;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiOperation;
 import java.lang.annotation.Annotation;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,8 +109,10 @@ public class GenControllerProcessor extends BaseCodeGenProcessor {
    */
   private Optional<MethodSpec> createMethod(String serviceFieldName, TypeElement typeElement,
       DefaultNameContext nameContext) {
-
-    return Optional.of(MethodSpec.methodBuilder("create" + typeElement.getSimpleName())
+    Set<VariableElement> fields = findFields(typeElement,
+        ve -> Objects.nonNull(ve.getAnnotation(ApiModelProperty.class))
+    );
+    Builder builder = MethodSpec.methodBuilder("create" + typeElement.getSimpleName())
         .addParameter(ParameterSpec.builder(ClassName.get(typeElement), "creator")
             .addAnnotation(RequestBody.class).build())
         .addException(Exception.class)
@@ -125,7 +137,30 @@ public class GenControllerProcessor extends BaseCodeGenProcessor {
                 typeElement.getSimpleName().toString())
         )
         .addJavadoc("createRequest")
-        .returns(com.hnc.socialization.result.Result.class).build());
+        .returns(Result.class);
+    builder.addAnnotation(AnnotationSpec.builder(ApiOperation.class).addMember("value", "$S",
+        "add接口").addMember("notes", "$S", "add接口").build());
+    // 创建 ApiImplicitParams 注解构建器
+    AnnotationSpec.Builder apiImplicitParamsBuilder = AnnotationSpec.builder(ApiImplicitParams.class);
+
+    // 遍历字段，生成每个 ApiImplicitParam 注解
+    for (VariableElement field : fields) {
+      ApiModelProperty apiModelProperty = field.getAnnotation(ApiModelProperty.class);
+      if (apiModelProperty != null) {
+        // 构建 ApiImplicitParam 注解
+        AnnotationSpec apiImplicitParam = AnnotationSpec.builder(ApiImplicitParam.class)
+            .addMember("name", "$S", field.getSimpleName().toString())
+            .addMember("value", "$S", apiModelProperty.value())
+            .addMember("dataType", "$S", field.asType().toString()) // 假设数据类型为 String，可以根据需要调整
+            .addMember("required", "$L", apiModelProperty.required()) // 使用 ApiModelProperty 的 required 属性
+            .build();
+
+        // 将 ApiImplicitParam 注解添加到 ApiImplicitParams 中
+        apiImplicitParamsBuilder.addMember("value", "$L", apiImplicitParam);
+      }
+    }
+    builder.addAnnotation(apiImplicitParamsBuilder.build());
+    return Optional.of(builder.build());
   }
 
   /**

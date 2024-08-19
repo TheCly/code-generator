@@ -162,7 +162,7 @@ public class GenHncFormServiceImplProcessor extends BaseCodeGenProcessor {
     methodBuilder.addCode("if(from!=null){\n");
     List<? extends Element> fieldTypes = typeElement.getEnclosedElements();
     for (Element field : fieldTypes) {
-      if (field.getKind() != ElementKind.FIELD) {
+      if (field.getKind() != ElementKind.FIELD||field.getModifiers().contains(Modifier.STATIC)) {
         continue;
       }
       String fieldName = field.getSimpleName().toString();
@@ -188,8 +188,6 @@ public class GenHncFormServiceImplProcessor extends BaseCodeGenProcessor {
     );
     MethodSpec build = methodBuilder.build();
     return Optional.of(build);
-
-
   }
 
   private Optional<MethodSpec> findAllMethod(TypeElement typeElement,
@@ -210,7 +208,7 @@ public class GenHncFormServiceImplProcessor extends BaseCodeGenProcessor {
     methodBuilder.addCode("if(from!=null){\n");
     List<? extends Element> fieldTypes = typeElement.getEnclosedElements();
     for (Element field : fieldTypes) {
-      if (field.getKind() != ElementKind.FIELD) {
+      if (field.getKind() != ElementKind.FIELD||field.getModifiers().contains(Modifier.STATIC)) {
         continue;
       }
       String fieldName = field.getSimpleName().toString();

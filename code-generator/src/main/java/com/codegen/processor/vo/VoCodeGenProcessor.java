@@ -38,7 +38,8 @@ public class VoCodeGenProcessor extends BaseCodeGenProcessor {
   @Override
   protected void generateClass(TypeElement typeElement, RoundEnvironment roundEnvironment) {
     Set<VariableElement> fields = findFields(typeElement,
-        ve -> Objects.isNull(ve.getAnnotation(IgnoreVo.class)));
+        ve -> Objects.isNull(ve.getAnnotation(IgnoreVo.class))&&!ve.getModifiers().contains(Modifier.STATIC)
+    );
     String className = typeElement.getSimpleName() + SUFFIX;
     Builder builder = TypeSpec.classBuilder(className)
         .addModifiers(Modifier.PUBLIC)
